@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling>=1.21.1"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pdf2zh-engine"
+version = "0.1.0"
+description = "Engine v1 wrapper for pdf2zh_next (Electron JSON job runner)."
+readme = "README.md"
+requires-python = "==3.12.*"
+license = { text = "MIT" }
+dependencies = [
+  "pdf2zh_next",
+  "pydantic>=2",
+]
+
+[project.scripts]
+pdf2zh-engine = "pdf2zh_engine.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pdf2zh_engine"]

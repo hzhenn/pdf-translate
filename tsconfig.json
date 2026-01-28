@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "jsx": "react-jsx",
+
+    // "allowJs": true,
+    // "checkJs": true,
+    "noEmit": true,
+
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "types": ["node", "vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@renderer/*": ["src/renderer/*"]
+    }
+  },
+  "include": [
+    "./src",
+    "./vite.config.ts",
+    "./apps/electron/main/index.js",
+    "./apps/electron/preload/index.js"
+  ],
+  "exclude": ["./dist", "./node_modules"]
+}

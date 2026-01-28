@@ -1,0 +1,41 @@
+node_modules/
+dist/
+.DS_Store
+npm-debug.log*
+pnpm-debug.log*
+.husky/
+tools/
+PROMPT.md
+# =========================
+# Python (engine/)
+# =========================
+
+# Python bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+engine/.venv/
+engine/venv/
+engine/env/
+engine/.env/
+
+# PyInstaller
+.pyinstaller/
+*.spec
+engine/build/
+engine/dist/
+
+# Python packaging
+*.egg-info/
+.eggs/
+
+# Logs / temp
+*.log
+*.tmp
+*.temp
+
+# OS junk
+.DS_Store
+Thumbs.db

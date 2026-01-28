@@ -1,0 +1,69 @@
+{
+  "name": "pdf-translate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "apps/electron/main/index.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development concurrently -k \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "npm exec -- wait-on http://localhost:5173 && npm exec -- electron .",
+    "build": "vite build",
+    "dist:win": "electron-builder --win",
+    "engine:server:build:win": "powershell -ExecutionPolicy Bypass -File engine\\scripts\\build-server-win.ps1",
+    "package:win": "npm run engine:server:build:win && npm run build && npm run dist:win",
+    "start": "cross-env NODE_ENV=production electron .",
+    "check": "biome check .",
+    "format": "biome format .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": "biome check --write",
+    "*.{json,md}": "biome format"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "biome": "^0.3.3",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^39.2.3",
+    "electron-builder": "^25.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4",
+    "vite-tsconfig-paths": "^5.1.4",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.pdftranslate.app",
+    "productName": "PDF Translate",
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/favicon.ico"
+    },
+    "files": [
+      "apps/electron/**",
+      "dist/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/pdf2zh-engine-server.exe",
+        "to": "engine/pdf2zh-engine-server.exe"
+      }
+    ]
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}
