@@ -40,6 +40,9 @@ New-Item -ItemType Directory -Force -Path $specPath | Out-Null
   --onefile `
   --console `
   --collect-submodules pdf2zh_next.translator.translator_impl `
+  --collect-data pdf2zh_next `
+  --collect-data babeldoc `
+  --collect-data rapidocr_onnxruntime `
   --hidden-import pdf2zh_next.translator.translator_impl.google `
   --hidden-import pdf2zh_next.translator.translator_impl.bing `
   --distpath $distPath `

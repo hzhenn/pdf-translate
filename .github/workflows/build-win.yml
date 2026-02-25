@@ -15,11 +15,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
+
+      - name: Sync package version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $version = "${env:GITHUB_REF_NAME}".Substring(1)
+          $currentVersion = (node -p "require('./package.json').version").Trim()
+          echo "APP_VERSION=$version" >> $env:GITHUB_ENV
+          if ($currentVersion -ne $version) {
+            npm version $version --no-git-tag-version
+          } else {
+            Write-Host "package.json version already $version, skip npm version"
+          }
+
+      - name: Commit version bump to main
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if (git diff --quiet -- package.json package-lock.json) {
+            exit 0
+          }
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to $env:APP_VERSION [skip ci]"
+          git push origin HEAD:main
 
       - name: Setup Python
         uses: actions/setup-python@v5
