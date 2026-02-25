@@ -13,6 +13,7 @@ import tempfile
 import threading
 import traceback
 import uuid
+from logging import FileHandler
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -22,6 +23,35 @@ from pdf2zh_engine.job import EngineJob
 
 
 LOGGER = logging.getLogger("pdf2zh_engine.server")
+MAX_LOG_BYTES = 1024 * 1024
+
+
+class SizeLimitedFileHandler(FileHandler):
+    def __init__(self, filename: str | Path, max_bytes: int = MAX_LOG_BYTES) -> None:
+        super().__init__(filename, mode="a", encoding="utf-8")
+        self.max_bytes = max_bytes
+
+    def emit(self, record: logging.LogRecord) -> None:
+        super().emit(record)
+        self._truncate_if_needed()
+
+    def _truncate_if_needed(self) -> None:
+        if not self.baseFilename:
+            return
+        if not os.path.exists(self.baseFilename):
+            return
+        size = os.path.getsize(self.baseFilename)
+        if size <= self.max_bytes:
+            return
+        self.flush()
+        with open(self.baseFilename, "rb") as source:
+            source.seek(size - self.max_bytes)
+            tail = source.read(self.max_bytes)
+        if self.stream:
+            self.stream.close()
+        with open(self.baseFilename, "wb") as target:
+            target.write(tail)
+        self.stream = self._open()
 
 
 def setup_logging(log_dir: str | None) -> None:
@@ -29,9 +59,8 @@ def setup_logging(log_dir: str | None) -> None:
     if log_dir:
         try:
             Path(log_dir).mkdir(parents=True, exist_ok=True)
-            file_handler = logging.FileHandler(
-                Path(log_dir) / "engine.log", encoding="utf-8"
-            )
+            log_file = Path(log_dir) / "engine.log"
+            file_handler = SizeLimitedFileHandler(log_file, max_bytes=MAX_LOG_BYTES)
             handlers.append(file_handler)
         except Exception as exc:
             sys.stderr.write(f"failed to init file logging at {log_dir}: {exc}\n")

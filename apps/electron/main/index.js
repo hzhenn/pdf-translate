@@ -10,8 +10,8 @@ let engineServerPort = null;
 let engineServerProcess = null;
 let engineServerReady = null;
 let logsDir = null;
-let electronLogStream = null;
-let engineStdioLogStream = null;
+let electronLogPath = null;
+let engineStdioLogPath = null;
 let pendingOpenFilePath = null;
 let isStoppingEngine = false;
 
@@ -19,6 +19,7 @@ const ENGINE_PORT = Number(process.env.PDF2ZH_ENGINE_PORT || 18080);
 const HEALTH_CHECK_TIMEOUT_MS = 300;
 const HEALTH_POLL_INTERVAL_MS = 200;
 const HEALTH_POLL_TOTAL_MS = 10000;
+const MAX_LOG_BYTES = 1024 * 1024;
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -30,6 +31,33 @@ function timestamp() {
   return new Date().toISOString();
 }
 
+function truncateLogFileToLimit(filePath, maxBytes = MAX_LOG_BYTES) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return;
+  }
+  const size = fs.statSync(filePath).size;
+  if (size <= maxBytes) {
+    return;
+  }
+  const start = size - maxBytes;
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const chunk = Buffer.allocUnsafe(maxBytes);
+    fs.readSync(fd, chunk, 0, maxBytes, start);
+    fs.writeFileSync(filePath, chunk);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function appendLimitedLog(filePath, text) {
+  if (!filePath) {
+    return;
+  }
+  fs.appendFileSync(filePath, text);
+  truncateLogFileToLimit(filePath, MAX_LOG_BYTES);
+}
+
 function writeMainLog(level, message) {
   const line = `[${timestamp()}] [${level.toUpperCase()}] ${message}`;
   if (level === 'error') {
@@ -37,28 +65,30 @@ function writeMainLog(level, message) {
   } else {
     console.log(line);
   }
-  if (electronLogStream) {
-    electronLogStream.write(`${line}\n`);
+  if (electronLogPath) {
+    appendLimitedLog(electronLogPath, `${line}\n`);
   }
 }
 
 function initLogFiles() {
   logsDir = path.join(app.getPath('userData'), 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
-  electronLogStream = fs.createWriteStream(path.join(logsDir, 'electron-main.log'), { flags: 'a' });
-  engineStdioLogStream = fs.createWriteStream(path.join(logsDir, 'engine-stdio.log'), { flags: 'a' });
+  electronLogPath = path.join(logsDir, 'electron-main.log');
+  engineStdioLogPath = path.join(logsDir, 'engine-stdio.log');
+  if (!fs.existsSync(electronLogPath)) {
+    fs.writeFileSync(electronLogPath, '');
+  }
+  if (!fs.existsSync(engineStdioLogPath)) {
+    fs.writeFileSync(engineStdioLogPath, '');
+  }
+  truncateLogFileToLimit(electronLogPath, MAX_LOG_BYTES);
+  truncateLogFileToLimit(engineStdioLogPath, MAX_LOG_BYTES);
   writeMainLog('info', `logs dir: ${logsDir}`);
 }
 
 function closeLogFiles() {
-  if (electronLogStream) {
-    electronLogStream.end();
-    electronLogStream = null;
-  }
-  if (engineStdioLogStream) {
-    engineStdioLogStream.end();
-    engineStdioLogStream = null;
-  }
+  electronLogPath = null;
+  engineStdioLogPath = null;
 }
 
 function extractPdfPathFromArgv(argv) {
@@ -357,15 +387,15 @@ async function startEngineServer() {
 
     engineServerProcess.stdout.on('data', (buf) => {
       const text = buf.toString();
-      if (engineStdioLogStream) {
-        engineStdioLogStream.write(`[${timestamp()}] [STDOUT] ${text}`);
+      if (engineStdioLogPath) {
+        appendLimitedLog(engineStdioLogPath, `[${timestamp()}] [STDOUT] ${text}`);
       }
     });
 
     engineServerProcess.stderr.on('data', (buf) => {
       const text = buf.toString();
-      if (engineStdioLogStream) {
-        engineStdioLogStream.write(`[${timestamp()}] [STDERR] ${text}`);
+      if (engineStdioLogPath) {
+        appendLimitedLog(engineStdioLogPath, `[${timestamp()}] [STDERR] ${text}`);
       }
     });
 

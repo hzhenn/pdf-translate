@@ -39,6 +39,9 @@ New-Item -ItemType Directory -Force -Path $specPath | Out-Null
   --name pdf2zh-engine-server `
   --onefile `
   --console `
+  --collect-submodules pdf2zh_next.translator.translator_impl `
+  --hidden-import pdf2zh_next.translator.translator_impl.google `
+  --hidden-import pdf2zh_next.translator.translator_impl.bing `
   --distpath $distPath `
   --workpath $workPath `
   --specpath $specPath `
